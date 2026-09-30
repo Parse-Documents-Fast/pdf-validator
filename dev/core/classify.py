@@ -19,5 +19,12 @@ def classify(content: bytes, filename: str) -> Format:
     if content.startswith(b"%PDF-"):
         return Format.PDF
         
-    # Markdown check will be implemented in Task 5
+    # 3. Markdown check
+    if filename.endswith(".md"):
+        try:
+            content.decode("utf-8")
+            return Format.MARKDOWN
+        except UnicodeDecodeError:
+            raise InvalidFileError(f"Error al decodificar UTF-8 en '{filename}'.")
+            
     raise InvalidFileError(f"Formato de archivo inválido para '{filename}'.")
