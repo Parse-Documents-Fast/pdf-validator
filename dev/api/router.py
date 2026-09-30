@@ -17,3 +17,7 @@ async def validate_file(file: UploadFile = File(...)):  # noqa: B008
     checksum_val = await anyio.to_thread.run_sync(calculate_checksum, content)
     
     return ValidateResponse(original_format=format_type, checksum=checksum_val)
+
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}

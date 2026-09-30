@@ -40,3 +40,8 @@ def test_validate_missing_file(client):
     assert response.headers["content-type"] == "application/problem+json"
     data = response.json()
     assert "title" in data
+
+def test_health(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
