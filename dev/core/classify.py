@@ -5,7 +5,7 @@ from dev.dto import Format
 
 def classify(content: bytes, filename: str) -> Format:
     """Classify the content of a file as PDF or Markdown."""
-    
+
     # 1. Size check
     actual_size_mb = len(content) / (1024 * 1024)
     if actual_size_mb > settings.max_file_size_mb:
@@ -14,11 +14,11 @@ def classify(content: bytes, filename: str) -> Format:
             f"Esperado: <={settings.max_file_size_mb} MB. "
             f"Actual: {actual_size_mb:.2f} MB."
         )
-        
+
     # 2. PDF check
     if content.startswith(b"%PDF-"):
         return Format.PDF
-        
+
     # 3. Markdown check
     if filename.endswith(".md"):
         try:
@@ -26,5 +26,5 @@ def classify(content: bytes, filename: str) -> Format:
             return Format.MARKDOWN
         except UnicodeDecodeError:
             raise InvalidFileError(f"Error al decodificar UTF-8 en '{filename}'.")
-            
+
     raise InvalidFileError(f"Formato de archivo inválido para '{filename}'.")

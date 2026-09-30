@@ -7,6 +7,7 @@ class Format(str, Enum):
     PDF = "pdf"
     MARKDOWN = "markdown"
 
+
 class ValidateResponse(BaseModel):
     original_format: Format
     checksum: str
