@@ -32,3 +32,20 @@ def test_classify_file_too_large():
     # It should mention actual size
     actual_size_mb = (max_bytes + 1) / (1024 * 1024)
     assert f"{actual_size_mb:.2f}" in err_msg
+
+def test_classify_valid_markdown():
+    content = b"# Hello world\nThis is a valid markdown file."
+    assert classify(content, "document.md") == Format.MARKDOWN
+
+def test_classify_invalid_markdown_utf8():
+    # Invalid UTF-8 sequence
+    content = b"# Hello \xff world"
+    with pytest.raises(InvalidFileError) as exc_info:
+        classify(content, "document.md")
+    assert "utf-8" in str(exc_info.value).lower() or "decod" in str(exc_info.value).lower()
+
+def test_classify_no_magic_no_md():
+    content = b"just some text"
+    with pytest.raises(InvalidFileError) as exc_info:
+        classify(content, "document.txt")
+    assert "inválido" in str(exc_info.value).lower() or "invalid" in str(exc_info.value).lower()
