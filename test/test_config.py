@@ -1,5 +1,7 @@
 import os
+
 from dev.config import Settings
+
 
 def test_settings_defaults():
     # Remove env vars if they exist to test defaults
