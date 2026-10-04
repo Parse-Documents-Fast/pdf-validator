@@ -19,7 +19,7 @@ WORKDIR /app
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
 
 # Copy dependency files
-COPY pyproject.toml .
+COPY pyproject.toml README.md .
 # Do not copy uv.lock since we removed it from version control in Issue 4, uv will resolve it.
 # Actually, since it's a microservice, if there was a lock file we would use `uv sync --frozen`.
 # Since there is no uv.lock we use `uv sync`.
