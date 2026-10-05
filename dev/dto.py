@@ -8,6 +8,11 @@ class Format(str, Enum):
     MARKDOWN = "markdown"
 
 
+class ValidateRequest(BaseModel):
+    filename: str
+    content_base64: str
+
+
 class ValidateResponse(BaseModel):
     original_format: Format
     checksum: str

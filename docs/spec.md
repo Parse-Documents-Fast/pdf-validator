@@ -41,7 +41,7 @@ No extrae contenido, no convierte, no persiste, no decide duplicados (eso lo hac
 |---|---|---|
 | Lenguaje | Python 3.12+ | Continuidad directa con el monolito: la lógica a portar (`validate_pdf_bytes`, `calculate_checksum`) ya está escrita y probada en Python — reescribirla en otro lenguaje no aporta nada en un servicio sin necesidad de concurrencia pesada (a diferencia de `pdf-main`, que sí la necesita). |
 | Framework | FastAPI | Mismo framework del monolito; sus exception handlers son el mecanismo natural para RFC 9457 (ADR-0001 lo menciona explícitamente como opción para Python). |
-| Validación de request | FastAPI UploadFile + Pydantic v2 | Pydantic modela el `ValidateResponse`. El request usa `multipart/form-data` para evitar duplicación de buffers en memoria (base64) y alto consumo de CPU, cumpliendo requisitos de optimización de carga. |
+| Validación de request | FastAPI + Pydantic v2 | Pydantic modela `ValidateRequest` (`filename`, `content_base64`) y `ValidateResponse`. El request es JSON con el binario en base64 (ADR-0002, `pdf-docs/contracts/contracts-validator.md`). |
 | Observabilidad | logging / structlog | Logs estructurados a stdout cumpliendo Twelve-Factor App, clave para la observabilidad en pruebas de carga. |
 | Gestor de paquetes | `uv` | Igual que el monolito y que el resto de servicios Python del sistema. |
 | Servidor ASGI | `uvicorn` | Estándar para FastAPI. |
@@ -136,12 +136,12 @@ def classify(content: bytes, filename: str) -> Format:
 ```python
 # dev/api/router.py — adaptador HTTP, delgado.
 @router.post("/validate", response_model=ValidateResponse)
-async def validate(file: UploadFile) -> ValidateResponse:
-    # Se lee asíncronamente y luego se procesa en el threadpool de FastAPI (o run_in_threadpool) para no bloquear el event loop.
-    content = await file.read()
+async def validate(req: ValidateRequest) -> ValidateResponse:
+    # Se decodifica el base64 (400 si es inválido) y luego se procesa en el threadpool para no bloquear el event loop.
+    content = base64.b64decode(req.content_base64, validate=True)
     try:
         # Se puede delegar a un threadpool si classify/checksum son pesados
-        fmt = classify(content, file.filename)
+        fmt = classify(content, req.filename)
         checksum = calculate_checksum(content)
     except InvalidFileError as e:
         raise ProblemHTTPException(400, "Archivo inválido", str(e))
@@ -168,10 +168,15 @@ Convenciones:
 
 ## DTOs (contrato de wire — snake_case, ADR-0002)
 
-**Fuente de verdad:** `pdf-main` (Actualizado para optimizar consumo de RAM/CPU, evitando base64). 
+**Fuente de verdad:** `pdf-main` + `pdf-docs/contracts/contracts-validator.md`.
 
-**Request (POST /validate):** `multipart/form-data`
-Campo `file`: binario del archivo (con su respectivo `filename`).
+**Request (POST /validate):** JSON
+```json
+{
+  "filename": "informe.pdf",
+  "content_base64": "JVBERi0xLjQKJcOkw7zDtsO4Cg=="
+}
+```
 
 **Response (200 OK):**
 ```jsonc
@@ -251,7 +256,7 @@ No hay `MONGO_URI`, ni URLs de otros servicios, ni streams de Redis — este ser
 4. `POST /validate` con un `.md` cuyo contenido no decodifica como UTF-8 responde `400` RFC 9457.
 5. `POST /validate` con contenido (de cualquier formato) que supera `MAX_FILE_SIZE_MB` responde `400` RFC 9457.
 6. El mismo contenido, subido dos veces, produce el mismo checksum (determinismo — necesario para que `pdf-main`/`pdf-persistence` detecten duplicados corractamente).
-7. Un payload malformado (falta campo `file` en el multipart) responde `400` en RFC 9457, no el shape default de validación de FastAPI.
+7. Un payload malformado (falta `filename`/`content_base64`, o base64 inválido) responde `400` en RFC 9457, no el shape default de validación de FastAPI.
 8. Logs en formato JSON son emitidos a `stdout` (Twelve-Factor App).
 8. `GET /health` responde `200` sin autenticación ni dependencias.
 9. `ruff check .`, `ruff format --check .` y `uv run pytest` pasan limpios.
