@@ -4,7 +4,7 @@ from dev.api.app import create_app
 from dev.config import settings
 from dev.logger import setup_logging
 
-setup_logging()
+setup_logging(log_level=settings.log_level)
 app = create_app()
 
 if __name__ == "__main__":

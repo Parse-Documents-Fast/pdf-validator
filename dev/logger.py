@@ -4,7 +4,7 @@ import sys
 import structlog
 
 
-def setup_logging(stream=None):
+def setup_logging(log_level: str = "INFO", stream=None):
     if stream is None:
         stream = sys.stdout
 
@@ -37,4 +37,4 @@ def setup_logging(stream=None):
     root_logger = logging.getLogger()
     root_logger.handlers = []
     root_logger.addHandler(handler)
-    root_logger.setLevel(logging.INFO)
+    root_logger.setLevel(log_level.upper())

@@ -6,7 +6,7 @@ from dev.logger import setup_logging
 def test_json_logging():
     stream = io.StringIO()
     # Configure the logger to use the string stream instead of stdout for testing
-    setup_logging(stream)
+    setup_logging(stream=stream)
 
     import structlog
 
