@@ -1,19 +1,4 @@
 services:
-  traefik:
-    image: traefik:v3.0
-    command:
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.web.address=:80"
-    ports:
-      - "80:80"
-      - "8080:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - fast_pdf_network
-
   pdf-validator:
     build: .
     environment:
@@ -22,10 +7,8 @@ services:
     networks:
       - fast_pdf_network
     restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pdf-validator.rule=PathPrefix(`/extract`)"
-      - "traefik.http.services.pdf-validator.loadbalancer.server.port=8000"
+    # Servicio interno (ADR-0004): sin ruta publica ni labels de Traefik.
+    # pdf-main lo consume por DNS interno: http://pdf-validator:8000
     deploy:
       replicas: 5
       resources:

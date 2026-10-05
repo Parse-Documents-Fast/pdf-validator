@@ -35,5 +35,6 @@ USER appuser
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8000/health || exit 1
 
-# Start the application
-CMD ["uv", "run", "python", "-m", "dev.main"]
+# Start the application (--no-sync: the .venv is built as root at build time;
+# appuser must not try to re-sync it at runtime)
+CMD ["uv", "run", "--no-sync", "python", "-m", "dev.main"]
