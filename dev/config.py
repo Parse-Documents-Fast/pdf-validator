@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     http_addr: str = ":8000"
     max_file_size_mb: int = 10
+    log_level: str = "INFO"
 
     model_config = {
         "env_file": ".env",
