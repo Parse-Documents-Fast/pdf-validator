@@ -11,6 +11,7 @@ RUN sh /uv-installer.sh && rm /uv-installer.sh
 
 # Ensure the installed binary is on the `PATH`
 ENV PATH="/root/.local/bin/:$PATH"
+ENV PYTHONUNBUFFERED=1
 
 # Setup working directory
 WORKDIR /app
