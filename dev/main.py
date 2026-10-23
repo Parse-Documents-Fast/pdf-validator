@@ -14,7 +14,12 @@ if __name__ == "__main__":
     # We must run with host "0.0.0.0" inside docker so it binds correctly,
     # but since settings.http_addr comes from env we just parse it.
     # The default ":8000" splits into host="" and port="8000".
-    # uvicorn needs "0.0.0.0" if host is empty.
     host = host if host else "0.0.0.0"
 
-    uvicorn.run("dev.main:app", host=host, port=port, log_config=None)
+    uvicorn.run(
+        "dev.main:app",
+        host=host,
+        port=port,
+        log_config=None,
+        access_log=False,
+    )

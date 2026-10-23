@@ -70,3 +70,70 @@ def test_health(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_validate_structured_logs(monkeypatch):
+    import io
+    import json
+
+    from dev.logger import setup_logging
+
+    log_stream = io.StringIO()
+    setup_logging(log_level="INFO", stream=log_stream)
+
+    app = create_app()
+    with TestClient(app) as test_client:
+        secret_content = b"%PDF-1.4\nSUPER_SECRET_PAYLOAD"
+        resp = test_client.post(
+            "/validate", json=_payload("invoice.pdf", secret_content)
+        )
+        assert resp.status_code == 200
+
+        output = log_stream.getvalue()
+        # Assert secret content is NEVER logged
+        assert "SUPER_SECRET_PAYLOAD" not in output
+
+        # Assert JSON structured logs
+        lines = [
+            json.loads(line) for line in output.strip().split("\n") if line.strip()
+        ]
+        msgs = [item.get("msg") for item in lines]
+        assert "file validated" in msgs
+        assert "http request completed" in msgs
+
+        validated_log = next(
+            item for item in lines if item.get("msg") == "file validated"
+        )
+        assert validated_log["service"] == "pdf-validator"
+        assert validated_log["level"] == "INFO"
+        assert "checksum" in validated_log
+        assert validated_log["size_bytes"] == len(secret_content)
+        assert validated_log["original_format"] == "pdf"
+
+
+def test_validation_failed_warn_log(monkeypatch):
+    import io
+    import json
+
+    from dev.logger import setup_logging
+
+    log_stream = io.StringIO()
+    setup_logging(log_level="INFO", stream=log_stream)
+
+    app = create_app()
+    with TestClient(app) as test_client:
+        resp = test_client.post(
+            "/validate",
+            json={"filename": "doc.pdf", "content_base64": "invalid_base64!!!"},
+        )
+        assert resp.status_code == 400
+
+        output = log_stream.getvalue()
+        lines = [
+            json.loads(line) for line in output.strip().split("\n") if line.strip()
+        ]
+        fail_log = next(
+            item for item in lines if item.get("msg") == "validation failed"
+        )
+        assert fail_log["level"] == "WARN"
+        assert fail_log["reason"] == "invalid base64"
