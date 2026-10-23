@@ -1,41 +1,50 @@
-FROM python:3.12-slim
+# syntax=docker/dockerfile:1
+FROM python:3.12-slim AS builder
 
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+# Instalar uv desde la imagen oficial
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
-# Download the latest installer
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
+# Configuracion de uv para build reproducible en contenedor
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=0
 
-# Run the installer then remove it
-RUN sh /uv-installer.sh && rm /uv-installer.sh
-
-# Ensure the installed binary is on the `PATH`
-ENV PATH="/root/.local/bin/:$PATH"
-ENV PYTHONUNBUFFERED=1
-
-# Setup working directory
 WORKDIR /app
 
-# Create a non-root user
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+# 1. Copiar manifiestos de dependencias primero para aprovechar cache de Docker
+COPY pyproject.toml uv.lock README.md ./
 
-# Copy dependency files
-COPY pyproject.toml README.md .
-# Do not copy uv.lock since we removed it from version control in Issue 4, uv will resolve it.
-# Actually, since it's a microservice, if there was a lock file we would use `uv sync --frozen`.
-# Since there is no uv.lock we use `uv sync`.
-RUN uv sync --no-dev
+# 2. Instalar dependencias externas (sin el proyecto)
+RUN uv sync --frozen --no-dev --no-install-project
 
-# Copy application source
+# 3. Copiar el codigo fuente e instalar el proyecto
 COPY dev/ dev/
+RUN uv sync --frozen --no-dev --no-editable
 
-# Change to non-root user
+# Etapa final de ejecucion
+FROM python:3.12-slim AS runner
+
+# Crear usuario sin privilegios
+RUN useradd --create-home --uid 10001 appuser
+
+WORKDIR /app
+
+# Copiar el virtualenv y fuentes con ownership de appuser
+COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder --chown=appuser:appuser /app/dev /app/dev
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/dev:/app" \
+    PYTHONUNBUFFERED=1
+
 USER appuser
 
-# Healthcheck against /health endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+EXPOSE 8000
 
-# Start the application (--no-sync: the .venv is built as root at build time;
-# appuser must not try to re-sync it at runtime)
-CMD ["uv", "run", "--no-sync", "python", "-m", "dev.main"]
+# Healthcheck nativo con Python (no requiere curl en imagen final)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD ["python", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=4).status == 200 else 1)"]
+
+# Iniciar la aplicacion
+CMD ["python", "-m", "dev.main"]
+

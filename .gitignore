@@ -222,9 +222,6 @@ __marimo__/
 .vscode/
 .agents
 
-# Package lock
-uv.lock
-
 # Windows
 Thumbs.db
 Thumbs.db:encryptable

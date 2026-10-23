@@ -6,7 +6,6 @@ __pycache__
 *.pyc
 *.pyo
 .env
-uv.lock
 test/
 tasks/
 docs/
