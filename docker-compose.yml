@@ -6,8 +6,10 @@ services:
     networks:
       - fast_pdf_network
     restart: unless-stopped
-    # No port bindings to host to enforce internal-only traffic
-    # No traefik labels since it's an internal microservice
+    deploy:
+      replicas: ${PDF_VALIDATOR_REPLICAS:-1}
+    # No port bindings to host to enforce internal-only traffic and allow horizontal scaling
+    # No traefik labels since it's an internal microservice consumed by pdf-main via DNS
 
 networks:
   fast_pdf_network:

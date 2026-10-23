@@ -1,4 +1,4 @@
-﻿# PDF Validator Microservice
+# PDF Validator Microservice
 
 Microservicio asíncrono para la validación perimetral de archivos (PDF y Markdown) y cálculo de hash criptográfico (SHA-256), diseñado bajo el patrón *Fast Path* para evitar el bloqueo del monolito principal (pdf-main).
 
@@ -21,12 +21,13 @@ Microservicio asíncrono para la validación perimetral de archivos (PDF y Markd
 |----------|-------------|---------|
 | HTTP_ADDR | Host y puerto donde servirá Uvicorn. | :8000 |
 | LOG_LEVEL | Nivel de verbosidad del logger. | INFO |
+| PDF_VALIDATOR_REPLICAS | Número de réplicas a instanciar en Docker Compose. | 1 |
 
 ## Comandos de Desarrollo Locales
 
 El repositorio utiliza [uv](https://github.com/astral-sh/uv) como gestor empaquetador ultrarrápido y para la gestión de dependencias en espacio de usuario.
 
-`powershell
+```powershell
 # Sincronizar el entorno y dependencias (equivalente a pip install)
 uv sync
 
@@ -39,12 +40,16 @@ uv run pytest test/
 # Ejecutar el linter y corrector de estilo (Ruff)
 uv run ruff check .
 uv run ruff format .
-`
+```
 
 ## Ejecución por Docker
 
-`ash
-# Construye la imagen e inicia el contenedor de manera aislada
+```bash
+# Construye la imagen e inicia el contenedor con 1 réplica por defecto
 docker compose up -d --build
-`
-> **Nota:** El microservicio no expone puertos al *host local*. Deberá acceder a él a través de otro servicio conectado a la red ast_pdf_network.
+
+# Escalar horizontalmente (ej: 5 réplicas)
+PDF_VALIDATOR_REPLICAS=5 docker compose up -d
+```
+> **Nota:** El microservicio no expone puertos al *host local* para permitir escalado horizontal sin colisión de puertos. `pdf-main` accede a él mediante balanceo DNS interno en la red `fast_pdf_network`.
+
