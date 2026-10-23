@@ -53,3 +53,16 @@ PDF_VALIDATOR_REPLICAS=5 docker compose up -d
 ```
 > **Nota:** El microservicio no expone puertos al *host local* para permitir escalado horizontal sin colisión de puertos. `pdf-main` accede a él mediante balanceo DNS interno en la red `fast_pdf_network`.
 
+## Logging Estructurado (ADR-0007)
+
+Los logs se emiten a `stdout` en formato JSON de una sola línea por evento, cumpliendo el factor XI de Twelve-Factor App y el estándar del proyecto:
+
+```json
+{"time":"2026-10-23T20:10:00.123Z","level":"INFO","service":"pdf-validator","msg":"file validated","checksum":"a94a8fe5...","original_format":"pdf","size_bytes":1024,"duration_ms":3.21}
+{"time":"2026-10-23T20:10:00.125Z","level":"WARN","service":"pdf-validator","msg":"validation failed","reason":"unsupported format"}
+```
+
+- **Niveles:** `DEBUG`, `INFO`, `WARN`, `ERROR` (configurable mediante `LOG_LEVEL`, default `INFO`).
+- **Privacidad:** Nunca se registran contenidos ni bytes de los archivos en memoria; únicamente metadatos (`checksum`, `original_format`, `size_bytes`, `duration_ms`, `reason`).
+
+

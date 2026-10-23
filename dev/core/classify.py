@@ -12,7 +12,8 @@ def classify(content: bytes, filename: str) -> Format:
         raise InvalidFileError(
             f"El archivo '{filename}' excede el límite de tamaño. "
             f"Esperado: <={settings.max_file_size_mb} MB. "
-            f"Actual: {actual_size_mb:.2f} MB."
+            f"Actual: {actual_size_mb:.2f} MB.",
+            reason="file too large",
         )
 
     # 2. PDF check
@@ -25,6 +26,12 @@ def classify(content: bytes, filename: str) -> Format:
             content.decode("utf-8")
             return Format.MARKDOWN
         except UnicodeDecodeError:
-            raise InvalidFileError(f"Error al decodificar UTF-8 en '{filename}'.")
+            raise InvalidFileError(
+                f"Error al decodificar UTF-8 en '{filename}'.",
+                reason="invalid utf-8",
+            )
 
-    raise InvalidFileError(f"Formato de archivo inválido para '{filename}'.")
+    raise InvalidFileError(
+        f"Formato de archivo inválido para '{filename}'.",
+        reason="unsupported format",
+    )
