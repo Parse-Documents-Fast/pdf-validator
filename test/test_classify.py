@@ -62,3 +62,14 @@ def test_classify_no_magic_no_md():
         "inválido" in str(exc_info.value).lower()
         or "invalid" in str(exc_info.value).lower()
     )
+
+
+def test_classify_19mb_accepted_and_21mb_rejected():
+    mb = 1024 * 1024
+    pdf_19mb = b"%PDF-1.4\n" + b"0" * (19 * mb - 9)
+    assert classify(pdf_19mb, "valid_19mb.pdf") == Format.PDF
+
+    pdf_21mb = b"%PDF-1.4\n" + b"0" * (21 * mb)
+    with pytest.raises(InvalidFileError) as exc_info:
+        classify(pdf_21mb, "too_large_21mb.pdf")
+    assert exc_info.value.reason == "file too large"

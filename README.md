@@ -22,7 +22,7 @@ Microservicio asíncrono para la validación perimetral de archivos (PDF y Markd
 | HTTP_ADDR | Host y puerto donde servirá Uvicorn. | :8000 |
 | LOG_LEVEL | Nivel de verbosidad del logger. | INFO |
 | PDF_VALIDATOR_REPLICAS | Número de réplicas a instanciar en Docker Compose. | 1 |
-| MAX_FILE_SIZE_MB | Tamaño máximo permitido para archivos en megabytes (rechaza con HTTP 400 `file too large`). | 10 |
+| MAX_FILE_SIZE_MB | Tamaño máximo permitido para archivos en megabytes según ADR-0008 (rechaza con HTTP 400 `file too large`). | 20 |
 
 ## Comandos de Desarrollo Locales
 
